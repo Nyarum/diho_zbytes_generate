@@ -158,11 +158,11 @@ inline fn encode_struct(
     }
 }
 
-pub fn encode(comptime T: type, allocator: std.mem.Allocator, packet: T, endian: std.builtin.Endian) !*Buffer {
+pub fn encode(allocator: std.mem.Allocator, packet: anytype, endian: std.builtin.Endian) !*Buffer {
     var buffer = try Buffer.init(allocator);
     errdefer buffer.deinit(allocator);
 
-    encode_struct(T, buffer, packet, endian);
+    encode_struct(@TypeOf(packet), buffer, packet, endian);
 
     return buffer;
 }
