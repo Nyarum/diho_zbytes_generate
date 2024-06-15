@@ -22,6 +22,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    _ = b.addModule("zbytes", .{ .root_source_file = b.path("src/main.zig") });
+
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).

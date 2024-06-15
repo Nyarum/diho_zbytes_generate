@@ -1,5 +1,5 @@
 const std = @import("std");
-const encdec = @import("./encdec/encdec.zig");
+pub const encdec = @import("./encdec/encdec.zig");
 
 const Test2 = struct {
     x: u32,
