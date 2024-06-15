@@ -49,16 +49,16 @@ pub fn main() !void {
         .internal_struct = .{ .x = 4 },
     };
 
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
 
-    const allocator = arena.allocator();
+    const allocator = gpa.allocator();
 
     const res = try encdec.encode(Test, allocator, t, std.builtin.Endian.big);
-    defer res.deinit();
 
     std.debug.print("Test 2 {x}\n", .{res.getData()});
 
     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
     std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    res.deinit();
 }

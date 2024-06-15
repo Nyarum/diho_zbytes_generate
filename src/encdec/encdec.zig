@@ -27,12 +27,18 @@ const Buffer = struct {
     data: []u8,
     pos: usize = 0,
 
-    fn init(allocator: std.mem.Allocator) !Buffer {
-        return Buffer{ .allocator = allocator, .data = try allocator.alloc(u8, 2048) };
+    fn init(allocator: std.mem.Allocator) !*Buffer {
+        const buffer = try allocator.create(Buffer);
+        buffer.data = try allocator.alloc(u8, 2048);
+        buffer.pos = 0;
+        buffer.allocator = allocator;
+
+        return buffer;
     }
 
     pub fn deinit(self: *Buffer) void {
         self.allocator.free(self.data);
+        self.allocator.destroy(self);
     }
 
     fn write(self: *Buffer, comptime T: type, value: T, endian: std.builtin.Endian) void {
@@ -156,7 +162,7 @@ pub fn encode(comptime T: type, allocator: std.mem.Allocator, packet: T, endian:
     var buffer = try Buffer.init(allocator);
     errdefer buffer.deinit(allocator);
 
-    encode_struct(T, &buffer, packet, endian);
+    encode_struct(T, buffer, packet, endian);
 
-    return &buffer;
+    return buffer;
 }
