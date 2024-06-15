@@ -1,5 +1,9 @@
 const std = @import("std");
 
+pub const String = struct {
+    value: []const u8,
+};
+
 pub inline fn FieldOptionEq(comptime T: type) type {
     return union(enum) {
         eq: T,
@@ -31,7 +35,7 @@ const Buffer = struct {
         self.allocator.free(self.data);
     }
 
-    fn writeInt(self: *Buffer, comptime T: type, value: T, endian: std.builtin.Endian) void {
+    fn write(self: *Buffer, comptime T: type, value: T, endian: std.builtin.Endian) void {
         switch (T) {
             u8 => {
                 var writeData: [1]u8 = undefined;
@@ -58,6 +62,15 @@ const Buffer = struct {
                 self.data[self.pos + 3] = writeData[3];
                 self.pos += 4;
             },
+            []const u8 => {
+                self.write(u16, @intCast(value.len + 1), endian);
+
+                std.mem.copyForwards(u8, self.data[self.pos..], value);
+                self.pos += value.len;
+
+                std.mem.copyForwards(u8, self.data[self.pos..], &[_]u8{0x00});
+                self.pos += 1;
+            },
             else => {},
         }
     }
@@ -78,7 +91,7 @@ inline fn encode_array_value(
     inline for (@field(pkt, value_name)) |arr_value| {
         switch (@typeInfo(arr_type)) {
             .Int => {
-                buffer.writeInt(arr_type, arr_value, endian);
+                buffer.write(arr_type, arr_value, endian);
             },
             .Struct => {
                 encode_struct(arr_type, buffer, arr_value, endian);
@@ -93,12 +106,17 @@ inline fn encode_array_value(
 fn encode_struct_runtime(comptime T: type, value: anytype, buffer: *Buffer, packet: anytype, endian_new: std.builtin.Endian) void {
     switch (@typeInfo(value.type)) {
         .Int => {
-            buffer.writeInt(value.type, @field(packet, value.name), endian_new);
+            buffer.write(value.type, @field(packet, value.name), endian_new);
         },
         .Array => |arr| {
             encode_array_value(T, packet, value.name, arr.child, buffer, endian_new);
         },
         .Struct => {
+            if (value.type == String) {
+                buffer.write([]const u8, @field(packet, value.name).value, endian_new);
+                return;
+            }
+
             encode_struct(value.type, buffer, @field(packet, value.name), endian_new);
         },
         else => {},

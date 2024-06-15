@@ -34,6 +34,8 @@ const Test = struct {
     internal_struct: Test2,
     testu8: u8 = 9,
     testu16: u16 = 10,
+    name: encdec.String = encdec.String{ .value = "hello" },
+    testu162: u16 = 11,
 
     fn comp_info() void {}
 };
@@ -52,7 +54,7 @@ pub fn main() !void {
 
     const allocator = arena.allocator();
 
-    const res = try encdec.encode(Test, allocator, t, std.builtin.Endian.little);
+    const res = try encdec.encode(Test, allocator, t, std.builtin.Endian.big);
     defer res.deinit();
 
     std.debug.print("Test 2 {x}\n", .{res.getData()});
