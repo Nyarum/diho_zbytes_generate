@@ -2,14 +2,17 @@ const std = @import("std");
 pub const encdec = @import("./encdec/encdec.zig");
 
 const Test2 = struct {
-    x: u32,
+    x: u32 = 0,
+    y: u8 = 0,
+    str: encdec.String = encdec.String{},
+    arrayTest: [2]u8 = .{ 0, 0 },
 
     pub inline fn tag(self: Test2, comptime T: type, comptime name: []const u8) ?encdec.Tag(T) {
-        const caseString = enum { x };
-        const case = std.meta.stringToEnum(caseString, name) orelse return null;
-        switch (case) {
-            .x => return tagx(self),
+        if (std.mem.eql(u8, name, "x") and T == u32) {
+            return tagx(self);
         }
+
+        return null;
     }
 
     inline fn tagx(self: Test2) encdec.Tag(u32) {
@@ -55,10 +58,18 @@ pub fn main() !void {
     const allocator = gpa.allocator();
 
     const res = try encdec.encode(allocator, t, std.builtin.Endian.big);
+    defer res.deinit();
 
     std.debug.print("Test 2 {x}\n", .{res.getData()});
 
+    const test2 = try allocator.create(Test2);
+    defer allocator.destroy(test2);
+
+    const buffer = try encdec.Buffer.initWithBuf(allocator, &[_]u8{ 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x04, 0x68, 0x65, 0x6c, 0x00, 0x01, 0x02 });
+    defer buffer.deinit();
+
+    try encdec.decode(Test2, test2, buffer, std.builtin.Endian.big);
+
     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-    res.deinit();
+    std.debug.print("Test 2. {any}\n", .{test2});
 }
